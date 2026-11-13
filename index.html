@@ -765,7 +765,7 @@ buildUnit();
 function enterUnit(u,view=false){if(!u)return;pushStep();curUnit=u;mode='int';rp.scene=inn;rp.camera=intCam;bloom.strength=.06;
  extCtl.enabled=false;intCtl.enabled=true;clearLabels();roomLabels=[];
  const y=floorY(u.f);if(cityY!==y){cityG.clear();cityY=y;addCity(cityG,-y-.3,5+u.f,170,.55)}
- loadLayout(u);select(null);meas=[];drawMeas();
+ loadLayout(u);select(null);meas=[];drawMeas();dollBg(true);
  ['#floors','#card','#intro','#hint'].forEach(s=>$(s).classList.add('hide'));$('#floors').style.display='none';
  $('#intBar').classList.remove('hide');$('#unitHead').classList.remove('hide');
  $('#uhName').textContent='Depto '+u.id;$('#uhSub').innerHTML=`Piso ${u.f} · ${u.m2} m² + ${u.ter} m² terraza<br>Toca un mueble para moverlo. Verde = cabe, rojo = no cabe.<br>👁 Primera persona: camina adentro.`;
@@ -786,8 +786,9 @@ function showShops(){clearLabels();shopLabels.forEach(l=>addLabel({get:()=>new T
 $('#tabInt').onclick=()=>{if(selUnit&&mode!=='int')enterUnit(selUnit)};
 $('#cEnter').onclick=()=>enterUnit(selUnit);
 $('#cView').onclick=()=>{enterUnit(selUnit);realOpen(3);rIdx=2;realShow()};
-function startWalk(pos,yaw,pitch){walk={yaw,pitch,to:pos.clone(),look:null,mv:null};$('#pad').classList.remove('hide');intCam.position.copy(pos);intCtl.enabled=false;unitG.userData.ceil.visible=true;setWalls(false);showRoomLabels(false);select(null);intCam.fov=62;intCam.updateProjectionMatrix();toast('Arrastra para mirar · pellizca para acercar · toca el piso o usa las flechas para caminar')}
-function stopWalk(){if(!walk)return;walk=null;$('#pad').classList.add('hide');unitG.userData.ceil.visible=false;setWalls(true);intCam.fov=48;intCam.updateProjectionMatrix();intCam.position.set(17,14,-10);intCtl.target.set(6.5,0,4.5);intCtl.enabled=mode==='int';if(mode==='int')showRoomLabels(true)}
+function dollBg(on){cityG.visible=!on;intSky.visible=!on;inn.background=on?new THREE.Color(0xe8e4dd):null;inn.fog.near=on?1e5:120;inn.fog.far=on?2e5:900}
+function startWalk(pos,yaw,pitch){dollBg(false);walk={yaw,pitch,to:pos.clone(),look:null,mv:null};$('#pad').classList.remove('hide');intCam.position.copy(pos);intCtl.enabled=false;unitG.userData.ceil.visible=true;setWalls(false);showRoomLabels(false);select(null);intCam.fov=62;intCam.updateProjectionMatrix();toast('Arrastra para mirar · pellizca para acercar · toca el piso o usa las flechas para caminar')}
+function stopWalk(){dollBg(true);if(!walk)return;walk=null;$('#pad').classList.add('hide');unitG.userData.ceil.visible=false;setWalls(true);intCam.fov=48;intCam.updateProjectionMatrix();intCam.position.set(17,14,-10);intCtl.target.set(6.5,0,4.5);intCtl.enabled=mode==='int';if(mode==='int')showRoomLabels(true)}
 function setTool(t){
  if(t==='vaciar'){items.forEach(i=>unitG.remove(i.g));items=[];select(null);saveLayout();toast('Depa vacío. Elige muebles abajo.');setTool('mueble');return}
  if(t==='salir'){exitUnit();return}
