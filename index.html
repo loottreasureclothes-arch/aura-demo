@@ -97,6 +97,10 @@ body.shot #pad,body.shot #back,body.shot #realBtn{display:none!important}
 #realHint{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);z-index:3;padding:8px 14px;font-size:12px;color:var(--mut)}
 #extPhoto{position:fixed;inset:0;z-index:1;background-size:cover;background-position:center;opacity:0;transition:opacity .9s;pointer-events:none}
 #extPhoto.on{opacity:1}
+#spinBand{position:fixed;inset:0;z-index:2;pointer-events:none;display:none}#spinBand.on{display:block}#bandPoly{fill:rgba(226,196,143,.5);stroke:#fff3d6;stroke-width:3}
+#unitsPick{position:fixed;right:14px;top:86px;width:300px;z-index:4;padding:16px}#unitsPick.hide{display:none}#unitsPick h3{font-size:24px;margin-bottom:8px}#unitsPick .u{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);margin-top:8px;background:rgba(255,255,255,.04)}#unitsPick .u i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px}
+@media (max-width:900px){#unitsPick{top:auto;bottom:110px;left:14px;right:14px;width:auto}}
+body.spin #intro{display:none}
 #pano{position:fixed;inset:0;z-index:8;pointer-events:none}#pano.hide{display:none}body.panoOn #intBar,body.panoOn #unitHead,body.panoOn #intro,body.panoOn #card,body.panoOn #top,body.panoOn #labels,body.panoOn #selChip,body.panoOn #fin,body.panoOn #pad,body.panoOn #hint,body.panoOn #toast{display:none!important}#panoRooms{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:6px;max-width:calc(100% - 28px);overflow-x:auto;pointer-events:auto;scrollbar-width:none}#panoFade{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .28s;pointer-events:none}
 #panoTop{position:absolute;top:14px;left:14px;right:14px;display:flex;gap:10px;align-items:center;pointer-events:auto}
 #hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:3;padding:10px 16px;color:var(--mut);font-size:13px;transition:.4s}
@@ -123,7 +127,7 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="extPhoto"></div>
+<div id="extPhoto"></div><svg id="spinBand" width="100%" height="100%"><polygon id="bandPoly" points=""/></svg>
 <div id="labels"></div>
 
 <div id="loader"><b class="serif">AURA</b><span>Cargando residencias</span></div>
@@ -157,6 +161,7 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
  <div class="row"><button class="btn gold" id="introGo">Ver departamentos</button></div>
 </div>
 
+<aside id="unitsPick" class="glass hide"><h3 class="serif" id="upTitle"></h3><div id="upList"></div></aside>
 <aside id="card" class="glass hide">
  <span class="tag" id="cTag"></span>
  <h2 class="serif" id="cName"></h2>
@@ -502,7 +507,7 @@ let selFloor=null,selUnit=null,mode='ext';
 const labels=$('#labels');let labelItems=[];
 function clearLabels(){labels.innerHTML='';labelItems=[]}
 function addLabel(pos,html,cls='lab',onclick){const d=document.createElement('div');d.className=cls;d.innerHTML=html;if(onclick)d.onclick=onclick;labels.appendChild(d);const it={pos,el:d};labelItems.push(it);return it}
-function selectFloor(f,noPush){$('#extPhoto').classList.remove('on');
+function selectFloor(f,noPush){if(!spinOn)$('#extPhoto').classList.remove('on');
  if(!noPush&&selFloor!==f)pushStep();selFloor=f;selUnit=null;$('#card').classList.add('hide');$('#intro').classList.add('hide');$('#hint').classList.add('hide');
  document.querySelectorAll('.fl').forEach(b=>b.classList.toggle('on',+b.dataset.f===f));
  document.querySelector(`.fl[data-f="${f}"]`)?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
@@ -512,6 +517,8 @@ function selectFloor(f,noPush){$('#extPhoto').classList.remove('on');
  clearLabels();
  floors[f-1].userData.ubox.forEach(b=>{const u=b.userData.unit;const p=new THREE.Vector3();
   addLabel({get:()=>p.set(b.position.x,floors[f-1].position.y+FH+.6,b.position.z)},`<i style="background:${css(STC[u.estado])}"></i>${u.f}0${u.k+1} · ${STN[u.estado]}`,'lab',()=>selectUnit(u))});
+ if(spinOn){floors.forEach(g=>{g.userData.lift=0;g.position.y=g.userData.baseY});roof.userData.lift=0;clearLabels();spinShow();spinBandDraw();
+  $('#upTitle').textContent='Piso '+f;$('#upList').innerHTML='';units[f].forEach(u=>{const b=document.createElement('button');b.className='u';b.innerHTML=`<span><i style="background:${css(STC[u.estado])}"></i>Depto ${u.id} · ${u.tipo}</span><small>${STN[u.estado]}</small>`;b.onclick=()=>{$('#unitsPick').classList.add('hide');selectUnit(u)};$('#upList').appendChild(b)});$('#unitsPick').classList.remove('hide');return}
  const y=floorY(f),sg=segOf(f);flyTo(extCam,extCtl,new THREE.Vector3(sg.ox+34,y+32,-52),new THREE.Vector3(sg.ox,y+1,sg.oz));
 }
 let noNav=false;
@@ -525,7 +532,7 @@ function selectUnit(u){if(selUnit!==u&&!noNav)pushStep();selUnit=u;
  $('#card').classList.remove('hide');
  const tab=$('#tabInt');tab.disabled=false;tab.style.opacity=1;
 }
-function resetExt(){setTimeout(extPhotoUpdate,1600);selFloor=null;selUnit=null;floors.forEach(g=>{g.userData.lift=0;g.userData.glass.visible=true;g.userData.fins.forEach(x=>x.visible=true);g.userData.rooms.forEach(r=>r.visible=true);g.userData.ubox.forEach(b=>b.visible=false)});roof.userData.lift=0;
+function resetExt(){$('#spinBand').classList.remove('on');$('#unitsPick').classList.add('hide');setTimeout(extPhotoUpdate,1600);selFloor=null;selUnit=null;floors.forEach(g=>{g.userData.lift=0;g.userData.glass.visible=true;g.userData.fins.forEach(x=>x.visible=true);g.userData.rooms.forEach(r=>r.visible=true);g.userData.ubox.forEach(b=>b.visible=false)});roof.userData.lift=0;
  document.querySelectorAll('.fl').forEach(b=>b.classList.remove('on'));clearLabels();$('#card').classList.add('hide');
  flyTo(extCam,extCtl,new THREE.Vector3(170,40,-250),new THREE.Vector3(0,60,0))}
 const favs=new Set();
@@ -535,6 +542,7 @@ $('#cta').onclick=()=>toast('Aquí abre el WhatsApp de ventas del desarrollo con
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2600)}
 
 /* ---------- fotos reales (IA) ---------- */
+const SPIN={R:230,h:55,ty:52,fov:38,N:24};
 const IMG=n=>'tour/ia/'+n+'.jpg';
 const ROOMSHOTS=[['Sala',['int-sala-0','int-sala-3','int-sala-1','int-terraza-1']],['Comedor',['int-entrada-0','int-comedor-0']],['Cocina',['int-comedor-1','int-sala-2']],['Terraza',['int-terraza-0','int-terraza-2','VISTA']],['Recámara principal',['int-recp-1','int-recp-0']],['Recámara 2',['int-rec2-0']],['Baño',['int-bano-0']]];
 let realOn=false,rRoom=0,rIdx=0,rLayer=0,rZoom=1;
@@ -558,13 +566,29 @@ $('#realMaq').onclick=()=>{realClose();setTool('mueble');toast('Maqueta para amu
  el.addEventListener('wheel',e=>{rZoom=clamp(rZoom*(1-e.deltaY*.001),1,3);const ph=el.querySelectorAll('.ph')[rLayer];ph.getAnimations().forEach(x=>x.cancel());ph.style.transform=`scale(${rZoom})`},{passive:true})}
 // afuera: al soltar el edificio aparece la foto real del ángulo más cercano
 let extReal=!SHOT_MODE,extIdle=null;const EXTN=[0,3,6,9];
-function extPhotoUpdate(){const el=$('#extPhoto');if(!extReal||mode!=='ext'||selFloor||realOn||(typeof panoOn!=='undefined'&&panoOn)||!$('#tabExt').classList.contains('on')){el.classList.remove('on');return}
+function extPhotoUpdate(){if(spinOn){if(mode==='ext'&&!realOn&&!(typeof panoOn!=='undefined'&&panoOn)&&$('#tabExt').classList.contains('on'))spinShow();else $('#extPhoto').classList.remove('on');return}const el=$('#extPhoto');if(!extReal||mode!=='ext'||selFloor||realOn||(typeof panoOn!=='undefined'&&panoOn)||!$('#tabExt').classList.contains('on')){el.classList.remove('on');return}
  const a=Math.atan2(extCam.position.z,extCam.position.x);let k=Math.round(((a+2*Math.PI)%(2*Math.PI))/(2*Math.PI)*12)%12;let id;
  if(night>.5){k=EXTN.reduce((p,q)=>Math.min(Math.abs(q-k),12-Math.abs(q-k))<Math.min(Math.abs(p-k),12-Math.abs(p-k))?q:p);id='ext-n'+String(k).padStart(2,'0')}else id='ext-d'+String(k).padStart(2,'0');
  el.style.backgroundImage=`url(${IMG(id)})`;el.classList.add('on')}
 extCtl.addEventListener('start',()=>{clearTimeout(extIdle);$('#extPhoto').classList.remove('on')});
 extCtl.addEventListener('end',()=>{clearTimeout(extIdle);extIdle=setTimeout(extPhotoUpdate,700)});
 if(extReal)setTimeout(extPhotoUpdate,900);
+let spinOn=false,spinK=0,spinList=[],spinI=0;const spinImgs={};
+function spinShow(){spinK=spinList[spinI]||0;const el=$('#extPhoto');el.style.backgroundImage=`url(tour/spin/${String(spinK).padStart(2,'0')}.jpg)`;el.classList.add('on');spinCam(spinK);if(selFloor)spinBandDraw()}
+const SPINCAL={};
+const camB=new THREE.PerspectiveCamera(SPIN.fov,16/9,.5,4000);
+function spinProj(v3){const k=spinK;const a=k/SPIN.N*2*Math.PI;camB.position.set(Math.cos(a)*SPIN.R,SPIN.h,Math.sin(a)*SPIN.R);camB.lookAt(0,SPIN.ty,0);camB.updateMatrixWorld();
+ const f=p=>{const v=p.clone().project(camB);return[(v.x+1)/2,(1-v.y)/2]};let [u,v]=f(v3);const c=SPINCAL[k];
+ if(c){const t=f(new THREE.Vector3(0,RY+7,0)),b=f(new THREE.Vector3(0,PODH,0));const sc=(c.base-c.top)/(b[1]-t[1]);u=c.x+(u-t[0])*sc;v=c.top+(v-t[1])*sc}
+ const S=Math.max(innerWidth/1920,innerHeight/1080);return[(u*1920*S)+(innerWidth-1920*S)/2,(v*1080*S)+(innerHeight-1080*S)/2]}
+function spinBandDraw(){const f=selFloor,sv=$('#spinBand');if(!f||!spinOn){sv.classList.remove('on');return}const sg=segOf(f),y0=floorY(f),y1=y0+FH;const pts=[];
+ for(let i=0;i<32;i++){const a=i/32*2*Math.PI;const lx=Math.cos(a)*sg.W/2,lz=Math.sin(a)*sg.D/2;const c=Math.cos(sg.rot),sn=Math.sin(sg.rot);const wx=sg.ox+lx*c+lz*sn,wz=sg.oz-lx*sn+lz*c;[y0,y1].forEach(y=>{pts.push(spinProj(new THREE.Vector3(wx,y,wz)))})}
+ const h=hull(pts);$('#bandPoly').setAttribute('points',h.map(p=>p.join(',')).join(' '));sv.classList.add('on')}
+function hull(P){P=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];for(const p of P){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}for(const p of P.slice().reverse()){while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}return lo.slice(0,-1).concat(up.slice(0,-1))}
+for(let k=0;k<SPIN.N;k+=3){const im=new Image();im.onload=()=>{spinImgs[k]=im;spinList=Object.keys(spinImgs).map(Number).sort((a,b)=>a-b);if(SHOT_MODE||spinOn)return;spinOn=true;document.body.classList.add('spin');extCtl.enabled=false;spinI=spinList.indexOf(k);if(mode==='ext'&&!selFloor&&$('#tabExt').classList.contains('on'))spinShow()};im.src='tour/spin/'+String(k).padStart(2,'0')+'.jpg'}
+let sdrag=null;canvas.addEventListener('pointerdown',e=>{if(!spinOn||mode!=='ext'||!$('#tabExt').classList.contains('on'))return;sdrag={x:e.clientX,i:spinI}},{capture:true});
+addEventListener('pointermove',e=>{if(!sdrag||!spinList.length)return;const st=Math.round((e.clientX-sdrag.x)/90);const n=spinList.length;const i=((sdrag.i-st)%n+n)%n;if(i!==spinI){spinI=i;spinShow()}});
+addEventListener('pointerup',()=>{sdrag=null});
 $('#realBtn').onclick=()=>{extReal=!extReal;$('#realBtn').classList.toggle('on',extReal);if(extReal){if(selFloor)resetExt();setTimeout(extPhotoUpdate,1200);toast('Foto real del ángulo que estás viendo · gira para cambiarla')}else $('#extPhoto').classList.remove('on')};
 
 /* ---------- visor 360 ---------- */
@@ -799,7 +823,7 @@ buildFin();
 
 /* ---------- mode switching ---------- */
 buildUnit();
-function enterUnit(u,view=false){if(!u)return;$('#extPhoto').classList.remove('on');clearTimeout(extIdle);pushStep();curUnit=u;mode='int';rp.scene=inn;rp.camera=intCam;bloom.strength=.06;
+function enterUnit(u,view=false){if(!u)return;$('#unitsPick').classList.add('hide');$('#spinBand').classList.remove('on');$('#extPhoto').classList.remove('on');clearTimeout(extIdle);pushStep();curUnit=u;mode='int';rp.scene=inn;rp.camera=intCam;bloom.strength=.06;
  extCtl.enabled=false;intCtl.enabled=true;clearLabels();roomLabels=[];
  const y=floorY(u.f);if(cityY!==y){cityG.clear();cityY=y;addCity(cityG,-y-.3,5+u.f,170,.55)}
  loadLayout(u);select(null);meas=[];drawMeas();dollBg(true);
@@ -816,8 +840,8 @@ function exitUnit(){saveLayout();stopWalk();mode='ext';rp.scene=ext;rp.camera=ex
  setTab('tabExt');if(selFloor){const u=selUnit;noNav=true;selectFloor(selFloor,true);if(u)selectUnit(u);noNav=false}}
 function setTab(id){['tabExt','tabRoof','tabShops','tabInt'].forEach(t=>$('#'+t).classList.toggle('on',t===id))}
 $('#tabExt').onclick=()=>{if(mode==='int')exitUnit();resetExt();setTab('tabExt')};
-$('#tabRoof').onclick=()=>{$('#extPhoto').classList.remove('on');if(mode==='int')exitUnit();resetExt();setTab('tabRoof');flyTo(extCam,extCtl,new THREE.Vector3(-38,PODH+26,PF-34),new THREE.Vector3(-4,PODH+1,PF+8));toast('Amenidades en el podio: alberca infinity, asoleadero, jardín y pérgola · roof lounge en el piso 25');pushStep()};
-$('#tabShops').onclick=()=>{$('#extPhoto').classList.remove('on');if(mode==='int')exitUnit();resetExt();setTab('tabShops');showShops();pushStep()};
+$('#tabRoof').onclick=()=>{if(spinOn){if(mode==='int')exitUnit();resetExt();setTab('tabRoof');const el=$('#extPhoto');el.style.backgroundImage='url(tour/ia/amen-alberca.jpg)';el.classList.add('on');toast('Amenidades en el podio: alberca infinity, asoleadero, jardín y pérgola');pushStep();return}$('#extPhoto').classList.remove('on');if(mode==='int')exitUnit();resetExt();setTab('tabRoof');flyTo(extCam,extCtl,new THREE.Vector3(-38,PODH+26,PF-34),new THREE.Vector3(-4,PODH+1,PF+8));toast('Amenidades en el podio: alberca infinity, asoleadero, jardín y pérgola · roof lounge en el piso 25');pushStep()};
+$('#tabShops').onclick=()=>{if(spinOn){if(mode==='int')exitUnit();resetExt();setTab('tabShops');const el=$('#extPhoto');el.style.backgroundImage='url(tour/ia/locales-calle.jpg)';el.classList.add('on');toast('9 locales a pie de avenida · 2 disponibles para renta (locales 3 y 6, 86 m²)');pushStep();return}$('#extPhoto').classList.remove('on');if(mode==='int')exitUnit();resetExt();setTab('tabShops');showShops();pushStep()};
 function showShops(){clearLabels();shopLabels.forEach(l=>addLabel({get:()=>new THREE.Vector3(l.x,6.2,PF-1)},`<i style="background:${l.st==='Disponible'?'#3fbf7f':'#d0584f'}"></i>Local ${l.i+1} · ${l.st==='Disponible'?'En renta':l.n}`,'lab',()=>toast(l.st==='Disponible'?`Local ${l.i+1}: 86 m², frente a avenida · disponible para renta`:`Local ${l.i+1}: ${l.n} (ocupado)`)));
  flyTo(extCam,extCtl,new THREE.Vector3(18,9,PF-46),new THREE.Vector3(0,5,PF))}
 $('#tabInt').onclick=()=>{if(selUnit&&mode!=='int')enterUnit(selUnit)};
@@ -843,15 +867,16 @@ document.querySelectorAll('#pad [data-m]').forEach(b=>{b.addEventListener('point
 
 /* ---------- loop ---------- */
 const clock=new THREE.Clock();const tmp=new THREE.Vector3();
-function updateLabels(){const cam=mode==='ext'?extCam:intCam;for(const l of labelItems){const p=l.pos.get();tmp.copy(p).project(cam);
+function updateLabels(){const cam=mode==='ext'?extCam:intCam;for(const l of labelItems){const p=l.pos.get();if(spinOn&&mode==='ext'){const q=spinProj(p);l.el.style.display='';l.el.style.left=q[0]+'px';l.el.style.top=q[1]+'px';continue}tmp.copy(p).project(cam);
  if(tmp.z>1||tmp.z<-1){l.el.style.display='none';continue}l.el.style.display='';l.el.style.left=((tmp.x+1)/2*innerWidth)+'px';l.el.style.top=((1-tmp.y)/2*innerHeight)+'px'}
  if(sel&&mode==='int'){tmp.set(sel.x,1.3,sel.z).project(intCam);const c=$('#selChip');c.style.left=clamp((tmp.x+1)/2*innerWidth,170,innerWidth-170)+'px';c.style.top=clamp((1-tmp.y)/2*innerHeight,130,innerHeight)+'px'}}
 function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05);const k=1-Math.exp(-dt*6);
- if(mode==='ext'){floors.forEach(g=>{const t=g.userData.baseY+g.userData.lift;g.position.y+= (t-g.position.y)*k});roof.position.y+=(RY+(roof.userData.lift||0)-roof.position.y)*k;extCtl.update()}
+ if(mode==='ext'){floors.forEach(g=>{const t=g.userData.baseY+g.userData.lift;g.position.y+= (t-g.position.y)*k});roof.position.y+=(RY+(roof.userData.lift||0)-roof.position.y)*k;if(!spinOn)extCtl.update()}
  else if(walk){if(walk.mv){const m=walk.mv;if(m==='zi'||m==='zo')setFov(intCam.fov*(m==='zi'?1-dt*.9:1+dt*.9));else{const f=m==='f'?1:m==='b'?-1:0,sd=m==='r'?1:m==='l'?-1:0;const fx=-Math.sin(walk.yaw),fz=-Math.cos(walk.yaw);
   const rx=Math.cos(walk.yaw),rz=-Math.sin(walk.yaw);const nx=walk.to.x+(fx*f+rx*sd)*dt*1.8,nz=walk.to.z+(fz*f+rz*sd)*dt*1.8;if(inRooms(nx,nz)){walk.to.x=clamp(nx,.35,12.65);walk.to.z=clamp(nz,-2.3,9.65)}}}
   if(walk.to)intCam.position.lerp(walk.to,1-Math.exp(-dt*3));intCam.rotation.set(walk.pitch,walk.yaw,0,'YXZ')}
  else intCtl.update();
+ if(goal&&spinOn&&mode==='ext')goal=null;
  if(goal){const kk=1-Math.exp(-dt*3);goal.cam.position.lerp(goal.pos,kk);goal.ctl.target.lerp(goal.tgt,kk);if(goal.cam.position.distanceTo(goal.pos)<.05){goal=null;if(mode==='ext')setTimeout(extPhotoUpdate,200)}}
  if(panoOn){panoCam.rotation.set(pv.pitch,pv.yaw,0,'YXZ');renderer.toneMapping=THREE.NoToneMapping;renderer.setRenderTarget(null);renderer.render(panoScene,panoCam);renderer.toneMapping=THREE.ACESFilmicToneMapping;return}
  composer.render();updateLabels()}
@@ -906,6 +931,12 @@ if(PANO){document.body.classList.add('shot');(async()=>{await new Promise(r=>set
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');const id=g.createImageData(W,H);for(let yy=0;yy<H;yy++)id.data.set(px.subarray((H-1-yy)*W*4,(H-yy)*W*4),yy*W*4);g.putImageData(id,0,0);
   const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',.9));await fetch('/pano_'+n+'.jpg',{method:'POST',body:b});inn.remove(cc)}
  document.title='DONE'})()}
+
+function spinCam(k){const a=k/SPIN.N*2*Math.PI;extCam.position.set(Math.cos(a)*SPIN.R,SPIN.h,Math.sin(a)*SPIN.R);extCam.fov=SPIN.fov;extCam.updateProjectionMatrix();extCam.lookAt(0,SPIN.ty,0)}
+const SPINCAP=new URLSearchParams(location.search).get('spincap');
+if(SPINCAP){document.body.classList.add('shot');extCtl.enabled=false;(async()=>{await new Promise(r=>setTimeout(r,1500));setHour(16.5);
+ for(let k=0;k<SPIN.N;k++){spinCam(k);floors.forEach(g=>{g.position.y=g.userData.baseY});roof.position.y=RY;await new Promise(r=>setTimeout(r,300));composer.render();composer.render();
+  const b=await new Promise(r=>canvas.toBlob(r,'image/jpeg',.9));await fetch('/spin_'+String(k).padStart(2,'0')+'.jpg',{method:'POST',body:b})}document.title='DONE'})()}
 window.__aura={selectFloor,selectUnit,enterUnit,setTool,setHour,units,extCam,extCtl,intCam,resetExt,floorY,get walk(){return walk},get items(){return items}};
 </script>
 </body>
