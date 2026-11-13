@@ -137,7 +137,7 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
  </div>
  <div id="right">
   <div id="hour" class="glass"><span>☀︎</span><input id="hourIn" type="range" min="6" max="22.5" step="0.1" value="16.8"><span id="hourTxt"></span></div>
-  <button class="btn" id="realBtn">📷 Foto real</button>
+  <button class="btn on" id="realBtn">📷 Foto real</button>
   <button class="btn gold" id="cta">Agendar visita</button>
  </div>
 </header>
@@ -197,7 +197,7 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
 <div id="selChip" class="glass hide"><span id="selName"></span><span class="st" id="selSt"></span><button class="btn" id="selRot">⟳ Girar</button><button class="btn" id="selDel">Quitar</button></div>
 <div id="toast" class="glass"></div>
 <div id="real" class="hide"><div class="ph"></div><div class="ph"></div>
- <div id="realTop"><button class="btn glass" id="realBack">← Atrás</button><div id="realTitle" class="glass"><b class="serif" id="rtName"></b><small id="rtSub"></small></div></div>
+ <div id="realTop"><button class="btn glass" id="realBack">← Atrás</button><button class="btn gold" id="realMaq">🛋 Amueblar y medir</button><div id="realTitle" class="glass"><b class="serif" id="rtName"></b><small id="rtSub"></small></div></div>
  <button class="nav l glass" id="realPrev">‹</button><button class="nav r glass" id="realNext">›</button>
  <div id="realHint" class="glass">Desliza o usa las flechas · pellizca para acercar · toca un cuarto abajo</div>
  <div id="realRooms" class="glass"></div></div>
@@ -522,7 +522,7 @@ function selectUnit(u){if(selUnit!==u&&!noNav)pushStep();selUnit=u;
  $('#card').classList.remove('hide');
  const tab=$('#tabInt');tab.disabled=false;tab.style.opacity=1;
 }
-function resetExt(){selFloor=null;selUnit=null;floors.forEach(g=>{g.userData.lift=0;g.userData.glass.visible=true;g.userData.fins.forEach(x=>x.visible=true);g.userData.rooms.forEach(r=>r.visible=true);g.userData.ubox.forEach(b=>b.visible=false)});roof.userData.lift=0;
+function resetExt(){setTimeout(extPhotoUpdate,1600);selFloor=null;selUnit=null;floors.forEach(g=>{g.userData.lift=0;g.userData.glass.visible=true;g.userData.fins.forEach(x=>x.visible=true);g.userData.rooms.forEach(r=>r.visible=true);g.userData.ubox.forEach(b=>b.visible=false)});roof.userData.lift=0;
  document.querySelectorAll('.fl').forEach(b=>b.classList.remove('on'));clearLabels();$('#card').classList.add('hide');
  flyTo(extCam,extCtl,new THREE.Vector3(170,40,-250),new THREE.Vector3(0,60,0))}
 const favs=new Set();
@@ -546,27 +546,29 @@ function realOpen(room=0){realOn=true;rRoom=room;rIdx=0;$('#real').classList.rem
 function realClose(){realOn=false;$('#real').classList.add('hide')}
 ROOMSHOTS.forEach(([n],i)=>{const b=document.createElement('button');b.className='btn';b.textContent=n;b.onclick=()=>{rRoom=i;rIdx=0;realShow()};$('#realRooms').appendChild(b)});
 $('#realNext').onclick=()=>{rIdx++;realShow()};$('#realPrev').onclick=()=>{rIdx=(rIdx+ROOMSHOTS[rRoom][1].length-1);realShow()};
-$('#realBack').onclick=()=>$('#back').click();
+$('#realBack').onclick=()=>{realClose();exitUnit()};
+$('#realMaq').onclick=()=>{realClose();setTool('mueble');toast('Maqueta para amueblar: toca un mueble para moverlo · verde = cabe')};
 {let sx=null,pd=null;const el=$('#real');const pts=new Map();
  el.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;pts.set(e.pointerId,e.clientX+','+e.clientY);sx=e.clientX});
  el.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,e.clientX+','+e.clientY);if(pts.size===2){const[a,b]=[...pts.values()].map(v=>v.split(',').map(Number));const d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd){rZoom=clamp(rZoom*d/pd,1,3);const ph=el.querySelectorAll('.ph')[rLayer];ph.getAnimations().forEach(x=>x.cancel());ph.style.transform=`scale(${rZoom})`}pd=d}});
  el.addEventListener('pointerup',e=>{if(pts.size===1&&sx!==null&&rZoom<1.05){const dx=e.clientX-sx;if(Math.abs(dx)>50){dx<0?$('#realNext').click():$('#realPrev').click()}}pts.delete(e.pointerId);if(pts.size<2)pd=null;sx=null});
  el.addEventListener('wheel',e=>{rZoom=clamp(rZoom*(1-e.deltaY*.001),1,3);const ph=el.querySelectorAll('.ph')[rLayer];ph.getAnimations().forEach(x=>x.cancel());ph.style.transform=`scale(${rZoom})`},{passive:true})}
 // afuera: al soltar el edificio aparece la foto real del ángulo más cercano
-let extReal=false,extIdle=null;const EXTN=[0,3,6,9];
+let extReal=!SHOT_MODE,extIdle=null;const EXTN=[0,3,6,9];
 function extPhotoUpdate(){const el=$('#extPhoto');if(!extReal||mode!=='ext'||selFloor||realOn){el.classList.remove('on');return}
  const a=Math.atan2(extCam.position.z,extCam.position.x);let k=Math.round(((a+2*Math.PI)%(2*Math.PI))/(2*Math.PI)*12)%12;let id;
  if(night>.5){k=EXTN.reduce((p,q)=>Math.min(Math.abs(q-k),12-Math.abs(q-k))<Math.min(Math.abs(p-k),12-Math.abs(p-k))?q:p);id='ext-n'+String(k).padStart(2,'0')}else id='ext-d'+String(k).padStart(2,'0');
  el.style.backgroundImage=`url(${IMG(id)})`;el.classList.add('on')}
 extCtl.addEventListener('start',()=>{clearTimeout(extIdle);$('#extPhoto').classList.remove('on')});
 extCtl.addEventListener('end',()=>{clearTimeout(extIdle);extIdle=setTimeout(extPhotoUpdate,700)});
+if(extReal)setTimeout(extPhotoUpdate,900);
 $('#realBtn').onclick=()=>{extReal=!extReal;$('#realBtn').classList.toggle('on',extReal);if(extReal){if(selFloor)resetExt();setTimeout(extPhotoUpdate,1200);toast('Foto real del ángulo que estás viendo · gira para cambiarla')}else $('#extPhoto').classList.remove('on')};
 
 /* ---------- atrás (botón y gesto del navegador) ---------- */
 let navDepth=0;
 function pushStep(){if(SHOT_MODE)return;try{history.pushState({n:++navDepth},'')}catch(e){}}
 function goBack(){
- if(realOn){realClose();return}
+ if(realOn){realClose();exitUnit();return}
  if(mode==='int'){if(walk){setTool('mueble');return}exitUnit();return}
  if(selUnit){selUnit=null;$('#card').classList.add('hide');selectFloor(selFloor,true);return}
  if(selFloor||$('#tabRoof').classList.contains('on')||$('#tabShops').classList.contains('on')){resetExt();setTab('tabExt');$('#intro').classList.remove('hide');return}
@@ -770,7 +772,8 @@ function enterUnit(u,view=false){if(!u)return;pushStep();curUnit=u;mode='int';rp
  setTab('tabInt');setTool('mueble');
  intCam.position.set(17,14,-10);intCtl.target.set(6.5,0,4.5);goal=null;
  showRoomLabels(true);
- if(view)setTool('vista')}
+ if(view)setTool('vista');
+ if(!SHOT_MODE&&!new URLSearchParams(location.search).get('frames')&&!new URLSearchParams(location.search).get('tourcap'))realOpen(0)}
 function exitUnit(){saveLayout();stopWalk();mode='ext';rp.scene=ext;rp.camera=extCam;bloom.strength=.55;intCtl.enabled=false;extCtl.enabled=true;
  showRoomLabels(false);clearLabels();select(null);$('#intBar').classList.add('hide');$('#unitHead').classList.add('hide');$('#fin').classList.add('hide');$('#floors').style.display='';$('#floors').classList.remove('hide');
  setTab('tabExt');if(selFloor){const u=selUnit;noNav=true;selectFloor(selFloor,true);if(u)selectUnit(u);noNav=false}}
@@ -811,10 +814,10 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   const rx=Math.cos(walk.yaw),rz=-Math.sin(walk.yaw);const nx=walk.to.x+(fx*f+rx*sd)*dt*1.8,nz=walk.to.z+(fz*f+rz*sd)*dt*1.8;if(inRooms(nx,nz)){walk.to.x=clamp(nx,.35,12.65);walk.to.z=clamp(nz,-2.3,9.65)}}}
   if(walk.to)intCam.position.lerp(walk.to,1-Math.exp(-dt*3));intCam.rotation.set(walk.pitch,walk.yaw,0,'YXZ')}
  else intCtl.update();
- if(goal){const kk=1-Math.exp(-dt*3);goal.cam.position.lerp(goal.pos,kk);goal.ctl.target.lerp(goal.tgt,kk);if(goal.cam.position.distanceTo(goal.pos)<.05)goal=null}
+ if(goal){const kk=1-Math.exp(-dt*3);goal.cam.position.lerp(goal.pos,kk);goal.ctl.target.lerp(goal.tgt,kk);if(goal.cam.position.distanceTo(goal.pos)<.05){goal=null;if(mode==='ext')setTimeout(extPhotoUpdate,200)}}
  composer.render();updateLabels()}
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);[extCam,intCam].forEach(c=>{c.aspect=innerWidth/innerHeight;c.updateProjectionMatrix()})});
-$('#hourIn').oninput=e=>setHour(+e.target.value);
+$('#hourIn').oninput=e=>{setHour(+e.target.value);clearTimeout(extIdle);extIdle=setTimeout(extPhotoUpdate,400)};
 setHour(hour);
 loop();
 setTimeout(()=>{$('#loader').style.opacity=0;setTimeout(()=>$('#loader').remove(),900)},500);
