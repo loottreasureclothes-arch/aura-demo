@@ -97,7 +97,8 @@ body.shot #pad,body.shot #back,body.shot #realBtn{display:none!important}
 #realHint{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);z-index:3;padding:8px 14px;font-size:12px;color:var(--mut)}
 #extPhoto{position:fixed;inset:0;z-index:1;background-size:cover;background-position:center;opacity:0;transition:opacity .9s;pointer-events:none}
 #extPhoto.on{opacity:1}
-#pano{position:fixed;inset:0;z-index:8;pointer-events:none}#pano.hide{display:none}body.panoOn #intBar,body.panoOn #unitHead,body.panoOn #intro,body.panoOn #card,body.panoOn #top,body.panoOn #labels,body.panoOn #selChip,body.panoOn #fin,body.panoOn #pad,body.panoOn #hint,body.panoOn #toast{display:none!important}#panoTop{position:absolute;top:14px;left:14px;right:14px;display:flex;gap:10px;align-items:center;pointer-events:auto}
+#pano{position:fixed;inset:0;z-index:8;pointer-events:none}#pano.hide{display:none}body.panoOn #intBar,body.panoOn #unitHead,body.panoOn #intro,body.panoOn #card,body.panoOn #top,body.panoOn #labels,body.panoOn #selChip,body.panoOn #fin,body.panoOn #pad,body.panoOn #hint,body.panoOn #toast{display:none!important}#panoRooms{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:6px;max-width:calc(100% - 28px);overflow-x:auto;pointer-events:auto;scrollbar-width:none}#panoFade{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .28s;pointer-events:none}
+#panoTop{position:absolute;top:14px;left:14px;right:14px;display:flex;gap:10px;align-items:center;pointer-events:auto}
 #hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:3;padding:10px 16px;color:var(--mut);font-size:13px;transition:.4s}
 #hint.hide{opacity:0}
 #loader{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .8s}
@@ -197,7 +198,7 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
 
 <div id="selChip" class="glass hide"><span id="selName"></span><span class="st" id="selSt"></span><button class="btn" id="selRot">⟳ Girar</button><button class="btn" id="selDel">Quitar</button></div>
 <div id="toast" class="glass"></div>
-<div id="pano" class="hide"><div id="panoTop"><button class="btn glass" id="panoBack">← Atrás</button><div class="glass" style="padding:10px 16px"><b class="serif" style="font-size:22px" id="panoName">Sala</b><small style="display:block;color:var(--mut);font-size:12px">Foto 360° · arrastra para voltear · pellizca para acercar</small></div><button class="btn gold" id="panoMaq">🛋 Amueblar y medir</button></div></div>
+<div id="pano" class="hide"><div id="panoTop"><button class="btn glass" id="panoBack">← Atrás</button><div class="glass" style="padding:10px 16px"><b class="serif" style="font-size:22px" id="panoName">Sala</b><small style="display:block;color:var(--mut);font-size:12px">Foto 360° · arrastra para voltear · pellizca para acercar</small></div><button class="btn gold" id="panoMaq">🛋 Amueblar y medir</button></div><div id="panoRooms" class="glass"></div><div id="panoFade"></div></div>
 <div id="real" class="hide"><div class="ph"></div><div class="ph"></div>
  <div id="realTop"><button class="btn glass" id="realBack">← Atrás</button><button class="btn gold" id="realMaq">🛋 Amueblar y medir</button><div id="realTitle" class="glass"><b class="serif" id="rtName"></b><small id="rtSub"></small></div></div>
  <button class="nav l glass" id="realPrev">‹</button><button class="nav r glass" id="realNext">›</button>
@@ -567,12 +568,29 @@ if(extReal)setTimeout(extPhotoUpdate,900);
 $('#realBtn').onclick=()=>{extReal=!extReal;$('#realBtn').classList.toggle('on',extReal);if(extReal){if(selFloor)resetExt();setTimeout(extPhotoUpdate,1200);toast('Foto real del ángulo que estás viendo · gira para cambiarla')}else $('#extPhoto').classList.remove('on')};
 
 /* ---------- visor 360 ---------- */
-const PANOS={'Sala':'tour/pano/sala.jpg'};
+const PN={sala:{n:'Sala',p:[3.6,4.6],l:['cocina','terraza','recp']},cocina:{n:'Cocina · comedor',p:[4.2,8.6],l:['sala','rec2','bano']},terraza:{n:'Terraza',p:[4.5,-1.3],l:['sala']},recp:{n:'Recámara principal',p:[9.6,2.6],l:['sala','bano']},rec2:{n:'Recámara 2',p:[10.9,8.5],l:['cocina','bano']},bano:{n:'Baño',p:[10.9,6],l:['rec2','recp','cocina']}};
+const ROOM2PN={'Sala':'sala','Comedor':'cocina','Cocina':'cocina','Terraza':'terraza','Recámara principal':'recp','Recámara 2':'rec2','Baño':'bano'};
+const PANOS={};
 const panoScene=new THREE.Scene(),panoCam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,100);
 const panoMat=new THREE.MeshBasicMaterial({side:THREE.BackSide});window.__pano={get on(){return panoOn},mat:panoMat};const panoSph=new THREE.Mesh(new THREE.SphereGeometry(10,64,40),panoMat);panoSph.scale.x=-1;panoScene.add(panoSph);
 let panoOn=false,pv={yaw:0,pitch:0,drag:null,pinch:null};const panoPts=new Map();const texL=new THREE.TextureLoader();
-function panoOpen(room){const url=PANOS[room];if(!url)return false;texL.load(url,t=>{t.colorSpace=THREE.SRGBColorSpace;panoMat.map=t;panoMat.needsUpdate=true});
- panoOn=true;document.body.classList.add('panoOn');pv.yaw=1.05;pv.pitch=0;panoCam.fov=75;panoCam.updateProjectionMatrix();$('#panoName').textContent=room;$('#pano').classList.remove('hide');$('#real').classList.add('hide');pushStep();return true}
+const hotG=new THREE.Group();panoScene.add(hotG);let panoCur=null,panoAvail=new Set();
+function vpos(wx,wz,lat=0,Rr=9){const lon=Math.atan2(-wx,-wz),phi=lon+Math.PI,r=Math.cos(lat)*Rr;return new THREE.Vector3(Math.cos(phi)*r,Math.sin(lat)*Rr,Math.sin(phi)*r)}
+function lblTex(t){const c=document.createElement('canvas');c.width=512;c.height=96;const g=c.getContext('2d');g.fillStyle='rgba(13,18,27,.78)';g.beginPath();g.roundRect(4,8,504,80,40);g.fill();g.fillStyle='#f4efe6';g.font='600 40px Inter,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,256,50);const tx=new THREE.CanvasTexture(c);tx.colorSpace=THREE.SRGBColorSpace;return tx}
+function panoGo(id,keepYaw){const n=PN[id];if(!n||!panoAvail.has(id))return;const go=()=>{panoCur=id;texL.load('tour/pano/'+id+'.jpg',t=>{t.colorSpace=THREE.SRGBColorSpace;panoMat.map=t;panoMat.needsUpdate=true;$('#panoFade').style.opacity=0});
+  hotG.clear();n.l.filter(k=>panoAvail.has(k)).forEach(k=>{const m=PN[k];const wx=m.p[0]-n.p[0],wz=m.p[1]-n.p[1];const d=Math.hypot(wx,wz);const lat=-Math.atan2(1.5,Math.min(d,3.2));const pos=vpos(wx,wz,lat,8);
+   const ring=new THREE.Mesh(new THREE.RingGeometry(.38,.55,48),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthTest:false}));ring.position.copy(pos);ring.lookAt(0,0,0);ring.userData.go=k;ring.renderOrder=5;hotG.add(ring);
+   const dot=new THREE.Mesh(new THREE.CircleGeometry(.34,40),new THREE.MeshBasicMaterial({color:0xc9a66b,transparent:true,opacity:.55,depthTest:false}));dot.position.copy(pos);dot.lookAt(0,0,0);dot.userData.go=k;dot.renderOrder=5;hotG.add(dot);
+   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:lblTex(m.n),depthTest:false}));sp.scale.set(2.4,.45,1);sp.position.copy(pos).add(new THREE.Vector3(0,.85,0));sp.userData.go=k;sp.renderOrder=6;hotG.add(sp)});
+  const tv=window.__travel;window.__travel=null;if(tv){const v=vpos(tv[0],tv[1]);pv.yaw=Math.atan2(-v.x,-v.z)}else if(!keepYaw){const v=vpos(0,-1);pv.yaw=Math.atan2(-v.x,-v.z)}pv.pitch=0;$('#panoName').textContent=n.n;
+  $('#panoRooms').querySelectorAll('.btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id))};
+ if(panoOn){$('#panoFade').style.opacity=1;setTimeout(go,280)}else go()}
+function panoOpen(room){const id=ROOM2PN[room]||'sala';if(!panoAvail.has(id))return false;
+ panoOn=true;document.body.classList.add('panoOn');panoCam.fov=75;panoCam.updateProjectionMatrix();$('#pano').classList.remove('hide');$('#real').classList.add('hide');panoGo(id);pushStep();return true}
+Object.keys(PN).forEach(id=>{const im=new Image();im.onload=()=>{panoAvail.add(id);const b=document.createElement('button');b.className='btn';b.dataset.id=id;b.textContent=PN[id].n;b.onclick=()=>panoGo(id);const box=$('#panoRooms');const order=Object.keys(PN);box.appendChild(b);[...box.children].sort((a,c)=>order.indexOf(a.dataset.id)-order.indexOf(c.dataset.id)).forEach(x=>box.appendChild(x))};im.src='tour/pano/'+id+'.jpg'});
+let pdown=null;canvas.addEventListener('pointerdown',e=>{if(panoOn)pdown=[e.clientX,e.clientY,performance.now()]},{capture:true});
+addEventListener('pointerup',e=>{if(!panoOn||!pdown)return;const tap=Math.hypot(e.clientX-pdown[0],e.clientY-pdown[1])<8&&performance.now()-pdown[2]<450;pdown=null;if(!tap)return;
+ setNdc(e);ray.setFromCamera(ndc,panoCam);const h=ray.intersectObjects(hotG.children,false)[0];if(h){const a=PN[panoCur].p,b=PN[h.object.userData.go].p;window.__travel=[b[0]-a[0],b[1]-a[1]];panoGo(h.object.userData.go,false)}});
 function panoClose(){panoOn=false;document.body.classList.remove('panoOn');$('#pano').classList.add('hide')}
 canvas.addEventListener('pointerdown',e=>{if(!panoOn)return;e.stopImmediatePropagation();panoPts.set(e.pointerId,[e.clientX,e.clientY]);pv.drag=[e.clientX,e.clientY];if(panoPts.size===2){const[a,b]=[...panoPts.values()];pv.pinch=[Math.hypot(a[0]-b[0],a[1]-b[1]),panoCam.fov]}},{capture:true});
 addEventListener('pointermove',e=>{if(!panoOn||!panoPts.has(e.pointerId))return;panoPts.set(e.pointerId,[e.clientX,e.clientY]);
@@ -781,7 +799,7 @@ buildFin();
 
 /* ---------- mode switching ---------- */
 buildUnit();
-function enterUnit(u,view=false){if(!u)return;pushStep();curUnit=u;mode='int';rp.scene=inn;rp.camera=intCam;bloom.strength=.06;
+function enterUnit(u,view=false){if(!u)return;$('#extPhoto').classList.remove('on');clearTimeout(extIdle);pushStep();curUnit=u;mode='int';rp.scene=inn;rp.camera=intCam;bloom.strength=.06;
  extCtl.enabled=false;intCtl.enabled=true;clearLabels();roomLabels=[];
  const y=floorY(u.f);if(cityY!==y){cityG.clear();cityY=y;addCity(cityG,-y-.3,5+u.f,170,.55)}
  loadLayout(u);select(null);meas=[];drawMeas();dollBg(true);
