@@ -103,6 +103,15 @@ body.shot #pad,body.shot #back,body.shot #realBtn{display:none!important}
 body.spin #intro{display:none}
 #pano{position:fixed;inset:0;z-index:8;pointer-events:none}#pano.hide{display:none}body.panoOn #intBar,body.panoOn #unitHead,body.panoOn #intro,body.panoOn #card,body.panoOn #top,body.panoOn #labels,body.panoOn #selChip,body.panoOn #fin,body.panoOn #pad,body.panoOn #hint,body.panoOn #toast{display:none!important}#panoRooms{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:6px;max-width:calc(100% - 28px);overflow-x:auto;pointer-events:auto;scrollbar-width:none}#panoFade{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .28s;pointer-events:none}
 #panoTop{position:absolute;top:14px;left:14px;right:14px;display:flex;gap:10px;align-items:center;pointer-events:auto}
+.ov{position:fixed;inset:0;z-index:9;background:#000}.ov.hide{display:none}.ovimg{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .5s}
+.ovTop{position:absolute;top:14px;left:14px;right:14px;display:flex;gap:10px;align-items:center;z-index:3}.ovTitle{padding:10px 16px}.ovTitle b{font-size:22px;display:block}.ovTitle small{color:var(--mut);font-size:12px}
+#dollImg{background-size:contain;background-repeat:no-repeat;background-color:#15171c}
+.pin{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:999px;background:rgba(13,18,27,.82);border:1px solid rgba(255,255,255,.25);color:#f4efe6;font-weight:600;font-size:13px;white-space:nowrap}
+.pin i{width:22px;height:22px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 6px rgba(201,166,107,.3);animation:pp 1.8s infinite}@keyframes pp{50%{box-shadow:0 0 0 11px rgba(201,166,107,0)}}
+#room .nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:58px;height:58px;border-radius:50%;font-size:24px}#room .nav.l{left:16px}#room .nav.r{right:16px}
+#roomDots{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:3}#roomDots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.4)}#roomDots i.on{background:#fff}
+#winBar{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:3;display:flex;gap:14px;align-items:center;padding:14px 20px;width:min(560px,calc(100% - 28px))}#winBar input{flex:1;accent-color:var(--gold)}#winBar span{font-size:13px;color:var(--mut);white-space:nowrap}
+#galGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:90px 14px 14px}#galGrid div{aspect-ratio:16/9;background-size:cover;background-position:center;border-radius:12px;cursor:pointer}
 #hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:3;padding:10px 16px;color:var(--mut);font-size:13px;transition:.4s}
 #hint.hide{opacity:0}
 #loader{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .8s}
@@ -139,6 +148,7 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
   <button class="btn on" id="tabExt">Edificio</button>
   <button class="btn" id="tabRoof">Amenidades</button>
   <button class="btn" id="tabShops">Locales</button>
+  <button class="btn" id="tabGal">Galería</button>
   <button class="btn" id="tabInt" disabled style="opacity:.4">Departamento</button>
  </div>
  <div id="right">
@@ -173,8 +183,9 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
   <div><b id="cBan"></b><small>baños</small></div>
  </div>
  <div class="price serif" id="cPrice"></div>
- <div class="row" style="margin-bottom:8px"><button class="btn gold" id="cEnter">Entrar al departamento</button></div>
- <div class="row"><button class="btn" id="cView">Ver la vista</button><button class="btn" id="cFav">♡ Guardar</button></div>
+ <div class="row" style="margin-bottom:8px"><button class="btn gold" id="cDoll">Ver el departamento</button></div>
+ <div class="row" style="margin-bottom:8px"><button class="btn" id="cView">🌇 Vista desde tu ventana</button><button class="btn" id="cEnter">⟳ Recorrido 360</button></div>
+ <div class="row"><button class="btn" id="cFav">♡ Guardar</button></div>
 </aside>
 
 <div id="unitHead" class="glass hide"><h3 class="serif" id="uhName"></h3><p id="uhSub"></p></div>
@@ -203,6 +214,15 @@ body.shot #top,body.shot #floors,body.shot #intro,body.shot #card,body.shot #int
 
 <div id="selChip" class="glass hide"><span id="selName"></span><span class="st" id="selSt"></span><button class="btn" id="selRot">⟳ Girar</button><button class="btn" id="selDel">Quitar</button></div>
 <div id="toast" class="glass"></div>
+<div id="doll" class="ov hide"><div class="ovimg" id="dollImg"></div><div id="dollPins"></div>
+ <div class="ovTop"><button class="btn glass ovBack">← Atrás</button><div class="glass ovTitle"><b class="serif" id="dollTitle"></b><small>Toca un cuarto para verlo</small></div><button class="btn gold" id="dollFurn">🛋 Amueblar y medir</button></div></div>
+<div id="room" class="ov hide"><div class="ovimg" id="roomImg"></div>
+ <div class="ovTop"><button class="btn glass ovBack">← Atrás</button><div class="glass ovTitle"><b class="serif" id="roomTitle"></b><small id="roomSub"></small></div><button class="btn gold" id="room360">⟳ Ver en 360°</button></div>
+ <button class="nav l glass" id="roomPrev">‹</button><button class="nav r glass" id="roomNext">›</button><div id="roomDots"></div></div>
+<div id="win" class="ov hide"><div class="ovimg" id="winA"></div><div class="ovimg" id="winB"></div>
+ <div class="ovTop"><button class="btn glass ovBack">← Atrás</button><div class="glass ovTitle"><b class="serif">Vista desde tu ventana</b><small id="winSub"></small></div></div>
+ <div id="winBar" class="glass"><span>☀︎ Mediodía</span><input type="range" min="0" max="2" step="0.01" value="1" id="winT"><span>☾ Noche</span></div></div>
+<div id="gal" class="ov hide" style="overflow:auto;background:#0d121b"><div class="ovTop" style="position:sticky"><button class="btn glass ovBack">← Atrás</button><div class="glass ovTitle"><b class="serif">Galería</b><small>Toca una foto para verla grande</small></div></div><div id="galGrid"></div></div>
 <div id="pano" class="hide"><div id="panoTop"><button class="btn glass" id="panoBack">← Atrás</button><div class="glass" style="padding:10px 16px"><b class="serif" style="font-size:22px" id="panoName">Sala</b><small style="display:block;color:var(--mut);font-size:12px">Foto 360° · arrastra para voltear · pellizca para acercar</small></div><button class="btn gold" id="panoMaq">🛋 Amueblar y medir</button></div><div id="panoRooms" class="glass"></div><div id="panoFade"></div></div>
 <div id="real" class="hide"><div class="ph"></div><div class="ph"></div>
  <div id="realTop"><button class="btn glass" id="realBack">← Atrás</button><button class="btn gold" id="realMaq">🛋 Amueblar y medir</button><div id="realTitle" class="glass"><b class="serif" id="rtName"></b><small id="rtSub"></small></div></div>
@@ -573,7 +593,7 @@ function extPhotoUpdate(){if(spinOn){if(mode==='ext'&&!realOn&&!(typeof panoOn!=
 extCtl.addEventListener('start',()=>{clearTimeout(extIdle);$('#extPhoto').classList.remove('on')});
 extCtl.addEventListener('end',()=>{clearTimeout(extIdle);extIdle=setTimeout(extPhotoUpdate,700)});
 if(extReal)setTimeout(extPhotoUpdate,900);
-let spinOn=false,spinK=0,spinList=[],spinI=0;const spinImgs={};
+let spinOn=!SHOT_MODE,spinK=0,spinList=[0,3,6,9,12,15,18,21],spinI=7;const spinImgs={};if(spinOn){document.body.classList.add('spin');extCtl.enabled=false;setTimeout(()=>{if(mode==='ext'&&!selFloor&&$('#tabExt').classList.contains('on'))spinShow()},50)}
 function spinShow(){spinK=spinList[spinI]||0;const el=$('#extPhoto');el.style.backgroundImage=`url(tour/spin/${String(spinK).padStart(2,'0')}.jpg)`;el.classList.add('on');spinCam(spinK);if(selFloor)spinBandDraw()}
 const SPINCAL={};
 const camB=new THREE.PerspectiveCamera(SPIN.fov,16/9,.5,4000);
@@ -624,17 +644,44 @@ addEventListener('pointermove',e=>{if(!panoOn||!panoPts.has(e.pointerId))return;
 canvas.addEventListener('wheel',e=>{if(!panoOn)return;panoCam.fov=clamp(panoCam.fov*(1+e.deltaY*.001),35,90);panoCam.updateProjectionMatrix()},{passive:true});
 $('#panoBack').onclick=()=>{panoClose();exitUnit()};$('#panoMaq').onclick=()=>{panoClose();setTool('mueble')};
 
+/* ---------- flujo tipo ejemplo: maqueta realista, cuartos, ventana, galería ---------- */
+const DOLLSPOTS={sala:[0.55,0.6],cocina:[0.77,0.43],comedor:[0.6,0.39],terraza:[0.42,0.79],recp:[0.385,0.37],rec2:[0.235,0.39],bano:[0.49,0.14]};
+const ROOMINFO={sala:['Sala',['int-sala-0','int-sala-3','int-sala-1'],'sala'],comedor:['Comedor',['int-entrada-0','int-comedor-0'],'cocina'],cocina:['Cocina',['int-comedor-1','int-sala-2'],'cocina'],terraza:['Terraza',['int-terraza-0','int-terraza-2','int-terraza-1'],'terraza'],recp:['Recámara principal',['int-recp-1','int-recp-0'],'recp'],rec2:['Recámara 2',['int-rec2-0'],'rec2'],bano:['Baño',['int-bano-0'],'bano']};
+let ovStack=[],dollU=null,roomK=null,roomI=0;
+function ovShow(id){['doll','room','win','gal'].forEach(x=>$('#'+x).classList.toggle('hide',x!==id));ovStack.push(id);pushStep()}
+function ovHideAll(){['doll','room','win','gal'].forEach(x=>$('#'+x).classList.add('hide'));ovStack=[]}
+function ovBack(){ovStack.pop();const prev=ovStack[ovStack.length-1];['doll','room','win','gal'].forEach(x=>$('#'+x).classList.toggle('hide',x!==prev));return !!prev||true}
+document.querySelectorAll('.ovBack').forEach(b=>b.onclick=()=>$('#back').click());
+function dollOpen(u){dollU=u;$('#dollImg').style.backgroundImage='url(tour/ia/doll.jpg)';$('#dollTitle').textContent='Depto '+u.id+' · '+u.m2+' m² + '+u.ter+' m² terraza';
+ const box=$('#dollPins');box.innerHTML='';Object.entries(DOLLSPOTS).forEach(([k,[x,y]])=>{const b=document.createElement('button');b.className='pin';b.innerHTML='<i></i>'+ROOMINFO[k][0];b.dataset.x=x;b.dataset.y=y;b.onclick=()=>roomOpen(k);box.appendChild(b)});dollLayout();ovShow('doll')}
+function dollLayout(){const W=innerWidth,H=innerHeight,S=Math.min(W/1920,H/1080),ox=(W-1920*S)/2,oy=(H-1080*S)/2;$('#dollPins').querySelectorAll('.pin').forEach(p=>{p.style.left=(ox+p.dataset.x*1920*S)+'px';p.style.top=(oy+p.dataset.y*1080*S)+'px'})}
+addEventListener('resize',dollLayout);
+function roomShow(){const [n,list]=ROOMINFO[roomK];const id=list[roomI%list.length];$('#roomImg').style.backgroundImage=`url(tour/ia/${id}.jpg)`;$('#roomTitle').textContent=n;$('#roomSub').textContent=(dollU?'Depto '+dollU.id+' · ':'')+'foto '+(roomI%list.length+1)+' de '+list.length;
+ $('#roomDots').innerHTML=list.map((_,i)=>`<i class="${i===roomI%list.length?'on':''}"></i>`).join('');$('#roomPrev').style.display=$('#roomNext').style.display=list.length>1?'':'none'}
+function roomOpen(k){roomK=k;roomI=0;roomShow();ovShow('room')}
+$('#roomNext').onclick=()=>{roomI++;roomShow()};$('#roomPrev').onclick=()=>{roomI=roomI+ROOMINFO[roomK][1].length-1;roomShow()};
+{let sx=null;$('#room').addEventListener('pointerdown',e=>{if(!e.target.closest('button'))sx=e.clientX});$('#room').addEventListener('pointerup',e=>{if(sx!==null&&Math.abs(e.clientX-sx)>50)(e.clientX<sx?$('#roomNext'):$('#roomPrev')).click();sx=null})}
+$('#room360').onclick=()=>{const k=ROOMINFO[roomK][2];ovHideAll();enterUnit(dollU||selUnit);if(panoAvail.has(k))panoGo(k)};
+$('#dollFurn').onclick=()=>{ovHideAll();enterUnit(dollU||selUnit);if(typeof panoClose==='function')panoClose();setTool('mueble')};
+function winOpen(u){const f=[3,9,15,22].reduce((a,b)=>Math.abs(b-u.f)<Math.abs(a-u.f)?b:a);$('#winSub').textContent='Depto '+u.id+' · piso '+u.f+' · mueve la barrita para cambiar la hora';
+ const imgs=['tour/ia/vista-p'+f+'-dia.jpg','tour/ia/vista-p'+f+'.jpg','tour/ia/vista-p'+f+'-noche.jpg'];$('#win').dataset.imgs=JSON.stringify(imgs);$('#winT').value=1;winSet(1);ovShow('win')}
+function winSet(t){const imgs=JSON.parse($('#win').dataset.imgs||'[]');if(!imgs.length)return;const i=Math.min(1,Math.floor(t)),f=t-i;$('#winA').style.backgroundImage=`url(${imgs[i]})`;$('#winB').style.backgroundImage=`url(${imgs[Math.min(2,i+1)]})`;$('#winB').style.opacity=f}
+$('#winT').oninput=e=>winSet(+e.target.value);
+$('#cDoll').onclick=()=>dollOpen(selUnit);
+function galOpen(){const g=$('#galGrid');if(!g.children.length){['spin/00','spin/09','spin/15','ia/amen-alberca','ia/locales-calle','ia/int-sala-0','ia/int-comedor-1','ia/int-terraza-0','ia/int-recp-1','ia/int-bano-0','ia/vista-p22','ia/doll'].forEach(n=>{const d=document.createElement('div');d.style.backgroundImage=`url(tour/${n}.jpg)`;d.onclick=()=>{$('#roomImg').style.backgroundImage=d.style.backgroundImage;$('#roomTitle').textContent='Galería';$('#roomSub').textContent='';$('#roomDots').innerHTML='';$('#roomPrev').style.display=$('#roomNext').style.display='none';$('#room360').style.display='none';ovShow('room')};g.appendChild(d)})}ovShow('gal')}
+
 /* ---------- atrás (botón y gesto del navegador) ---------- */
 let navDepth=0;
 function pushStep(){if(SHOT_MODE)return;try{history.pushState({n:++navDepth},'')}catch(e){}}
 function goBack(){
+ if(ovStack.length){const top=ovStack[ovStack.length-1];if(top==='room')$('#room360').style.display='';ovBack();return}
  if(panoOn){panoClose();exitUnit();return}
  if(realOn){realClose();exitUnit();return}
  if(mode==='int'){if(walk){setTool('mueble');return}exitUnit();return}
  if(selUnit){selUnit=null;$('#card').classList.add('hide');selectFloor(selFloor,true);return}
  if(selFloor||$('#tabRoof').classList.contains('on')||$('#tabShops').classList.contains('on')){resetExt();setTab('tabExt');$('#intro').classList.remove('hide');return}
  toast('Ya estás en la vista general')}
-$('#back').onclick=()=>{if(navDepth>0)history.back();else goBack()};
+$('#back').onclick=()=>goBack();
 addEventListener('popstate',()=>{navDepth=Math.max(0,navDepth-1);goBack()});
 
 /* ---------- pointer (exterior) ---------- */
@@ -844,9 +891,10 @@ $('#tabRoof').onclick=()=>{if(spinOn){if(mode==='int')exitUnit();resetExt();setT
 $('#tabShops').onclick=()=>{if(spinOn){if(mode==='int')exitUnit();resetExt();setTab('tabShops');const el=$('#extPhoto');el.style.backgroundImage='url(tour/ia/locales-calle.jpg)';el.classList.add('on');toast('9 locales a pie de avenida · 2 disponibles para renta (locales 3 y 6, 86 m²)');pushStep();return}$('#extPhoto').classList.remove('on');if(mode==='int')exitUnit();resetExt();setTab('tabShops');showShops();pushStep()};
 function showShops(){clearLabels();shopLabels.forEach(l=>addLabel({get:()=>new THREE.Vector3(l.x,6.2,PF-1)},`<i style="background:${l.st==='Disponible'?'#3fbf7f':'#d0584f'}"></i>Local ${l.i+1} · ${l.st==='Disponible'?'En renta':l.n}`,'lab',()=>toast(l.st==='Disponible'?`Local ${l.i+1}: 86 m², frente a avenida · disponible para renta`:`Local ${l.i+1}: ${l.n} (ocupado)`)));
  flyTo(extCam,extCtl,new THREE.Vector3(18,9,PF-46),new THREE.Vector3(0,5,PF))}
+$('#tabGal').onclick=()=>galOpen();
 $('#tabInt').onclick=()=>{if(selUnit&&mode!=='int')enterUnit(selUnit)};
 $('#cEnter').onclick=()=>enterUnit(selUnit);
-$('#cView').onclick=()=>{enterUnit(selUnit);realOpen(3);rIdx=2;realShow()};
+$('#cView').onclick=()=>winOpen(selUnit);
 function dollBg(on){cityG.visible=!on;intSky.visible=!on;inn.background=on?new THREE.Color(0xe8e4dd):null;inn.fog.near=on?1e5:120;inn.fog.far=on?2e5:900}
 function startWalk(pos,yaw,pitch){dollBg(false);walk={yaw,pitch,to:pos.clone(),look:null,mv:null};$('#pad').classList.remove('hide');intCam.position.copy(pos);intCtl.enabled=false;unitG.userData.ceil.visible=true;setWalls(false);showRoomLabels(false);select(null);intCam.fov=62;intCam.updateProjectionMatrix();toast('Arrastra para mirar · pellizca para acercar · toca el piso o usa las flechas para caminar')}
 function stopWalk(){dollBg(true);if(!walk)return;walk=null;$('#pad').classList.add('hide');unitG.userData.ceil.visible=false;setWalls(true);intCam.fov=48;intCam.updateProjectionMatrix();intCam.position.set(17,14,-10);intCtl.target.set(6.5,0,4.5);intCtl.enabled=mode==='int';if(mode==='int')showRoomLabels(true)}
@@ -937,6 +985,14 @@ const SPINCAP=new URLSearchParams(location.search).get('spincap');
 if(SPINCAP){document.body.classList.add('shot');extCtl.enabled=false;(async()=>{await new Promise(r=>setTimeout(r,1500));setHour(16.5);
  for(let k=0;k<SPIN.N;k++){spinCam(k);floors.forEach(g=>{g.position.y=g.userData.baseY});roof.position.y=RY;await new Promise(r=>setTimeout(r,300));composer.render();composer.render();
   const b=await new Promise(r=>canvas.toBlob(r,'image/jpeg',.9));await fetch('/spin_'+String(k).padStart(2,'0')+'.jpg',{method:'POST',body:b})}document.title='DONE'})()}
+
+const DOLL=new URLSearchParams(location.search).get('dollcap');
+if(DOLL){document.body.classList.add('shot');(async()=>{await new Promise(r=>setTimeout(r,1500));setHour(15.5);enterUnit(units[9][0]);if(typeof panoClose==='function')panoClose();if(typeof realClose==='function')realClose();setTool('mueble');setWalls(false);showRoomLabels(false);dollBg(true);inn.background=new THREE.Color(0x15171c);
+ intCtl.enabled=false;intCam.fov=30;intCam.aspect=16/9;intCam.updateProjectionMatrix();intCam.position.set(-7.5,15.5,-9.5);intCam.lookAt(6.6,0,4.2);
+ await new Promise(r=>setTimeout(r,600));composer.render();composer.render();const b=await new Promise(r=>canvas.toBlob(r,'image/jpeg',.92));await fetch('/doll_base.jpg',{method:'POST',body:b});
+ const rooms={sala:[3.4,4.6],cocina:[4.6,8.8],comedor:[5.6,6.8],terraza:[6.5,-1.2],recp:[9.6,2.6],rec2:[10.9,8.5],bano:[10.9,6],banop:[12.1,4]};const out={};
+ for(const[k,[x,z]] of Object.entries(rooms)){const v=new THREE.Vector3(x,.3,z).project(intCam);out[k]=[+((v.x+1)/2).toFixed(4),+((1-v.y)/2).toFixed(4)]}
+ await fetch('/doll_spots.json',{method:'POST',body:JSON.stringify(out)});document.title='DONE'})()}
 window.__aura={selectFloor,selectUnit,enterUnit,setTool,setHour,units,extCam,extCtl,intCam,resetExt,floorY,get walk(){return walk},get items(){return items}};
 </script>
 </body>
